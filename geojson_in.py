@@ -134,13 +134,15 @@ def geojson_to_geometry(geometry_struct):
         raise TypeError("Geometry type {}".format(geometry_struct['type']))
 
 def write_features(out_feature_class, out_schema, json_struct):
+    # Create a list of (sane_field_name, field_name) tuples
     reverse_field_name_mapping = list(sorted((v, k) for
                                       k, v in ['field_names'].iteritems()))
     fields = ["SHAPE@"] + [f[0] for f in reverse_field_name_mapping]
     with arcpy.da.InsertCursor(out_feature_class, fields) as out_cur:
-        for row_struct in json_struct["features"]:
+        for row_struct in json_struct['features']:
             row_data = row_struct['properties']
-            row_list = [row_data.get(k[1]) for k in reverse_field_name_mapping]
+            row_list = [row_data.get(k[1], None)
+                        for k in reverse_field_name_mapping]
             for geometry in geojson_to_geometry(row_struct['geometry']):
                 out_cur.insertRow([geometry] + row_list)
 
