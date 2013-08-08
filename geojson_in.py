@@ -75,6 +75,17 @@ def sane_field_name(field_name, field_index, used_field_names):
             num += 1
         return f_field_name
 
+def field_info(field_tuple):
+    dtype, dlength = field_tuple
+    if dtype == NULL:
+        return ("SHORT", 2)
+    elif dtype == INT:
+        return ("LONG", 8)
+    elif dtype == FLOAT:
+        return ("DOUBLE", 8)
+    else:
+        return ("TEXT", dlength)
+
 def create_feature_class(catalog_path, out_schema):
     arcpy.management.CreateFeatureclass(os.path.dirname(catalog_path),
                                         os.path.basename(catalog_path),
@@ -91,8 +102,47 @@ def create_feature_class(catalog_path, out_schema):
                                   field_alias=field_name,
                                   field_is_nullable="NULLABLE")
 
-def write_features(out_feature_class, json_struct):
-    raise NotImplementedError()
+def geojson_to_geometry(geometry_struct):
+    coordinates = geometry_struct['coordinates']
+    if geometry_struct['type'] == "Point":
+        return [arcpy.PointGeometry(arcpy.Point(*coordinates))]
+    elif geometry_struct['type'] == "MultiPoint":
+        return [arcpy.PointGeometry(arcpy.Point(*coord))
+                for coord in coordinates]
+    elif geometry_struct['type'] == "LineString":
+        return [arcpy.Polyline(arcpy.Array([arcpy.Point(*item)
+                                        for item in coordinates]))]
+    elif geometry_struct['type'] == "MultiLineString":
+        return [
+            arcpy.Polyline(arcpy.Array([arcpy.Point(*item)
+                                        for item in linestring]))
+            for linestring in coordinates
+        ]
+    elif geometry_struct['type'] == "Polygon":
+        return [
+            arcpy.Polygon(arcpy.Array(arcpy.Array([arcpy.Point(*item)
+                                        for item in ring])))
+            for ring in coordinates
+        ]
+    elif geometry_struct['type'] == "MultiPolygon":
+        return reduce(lambda x,y: x+y, [[
+            arcpy.Polygon(arcpy.Array(arcpy.Array([arcpy.Point(*item)
+                                        for item in ring])))
+            for ring in polygon
+        ] for polygon in coordinates])
+    else:
+        raise TypeError("Geometry type {}".format(geometry_struct['type']))
+
+def write_features(out_feature_class, out_schema, json_struct):
+    reverse_field_name_mapping = list(sorted((v, k) for
+                                      k, v in ['field_names'].iteritems()))
+    fields = ["SHAPE@"] + [f[0] for f in reverse_field_name_mapping]
+    with arcpy.da.InsertCursor(out_feature_class, fields) as out_cur:
+        for row_struct in json_struct["features"]:
+            row_data = row_struct['properties']
+            row_list = [row_data.get(k[1]) for k in reverse_field_name_mapping]
+            for geometry in geojson_to_geometry(row_struct['geometry']):
+                out_cur.insertRow([geometry] + row_list)
 
 def geojson_to_feature(in_geojson, out_feature_class):
     json_struct = load_geojson_struct(in_geojson)
