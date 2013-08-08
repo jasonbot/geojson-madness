@@ -53,13 +53,18 @@ def geometry_to_struct(in_geometry):
     else:
         raise ValueError(in_geometry)
 
-def geojson_lines_for_feature_class():
+def geojson_lines_for_feature_class(in_feature_class):
     shape_field = arcpy.Describe(in_feature_class).shapeFieldName
     spatial_reference = arcpy.SpatialReference('WGS 1984')
 
+    aliased_fields = {
+                            field.name: (field.aliasName or field.name)
+                            for field in arcpy.ListFields()
+                     }
+
     with arcpy.da.SearchCursor(in_feature_class, ['SHAPE@', '*'],
                                spatial_reference=spatial_reference) as in_cur:
-        col_names = in_cur.fields[1:]
+        col_names = [aliased_fields.get(f, f) for f in in_cur.fields[1:]]
         yield '{'
         yield '  "type": "FeatureCollection",'
         yield '  "features": ['
