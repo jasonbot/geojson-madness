@@ -1,5 +1,7 @@
 # coding: utf-8
 import json
+import os
+import urllib2
 
 import arcpy
 
@@ -53,6 +55,25 @@ def geometry_to_struct(in_geometry):
     else:
         raise ValueError(in_geometry)
 
+def utf8ify(fn_):
+    def fn(*a, **k):
+        for output in fn_(*a, **k):
+            if isinstance(output, unicode):
+                yield output.encode("utf-8")
+            elif isinstance(output, str):
+                try:
+                    output.decode("utf-8")
+                    yield output
+                except:
+                    # Magnificently hacky: don't know encoding, so just go nuts
+                    # and strip all non-ASCII
+                    yield (output.decode("ascii", "replace")
+                                 .encode("ascii", "replace"))
+            else:
+                yield output
+    return fn
+
+@utf8ify
 def geojson_lines_for_feature_class(in_feature_class):
     shape_field = arcpy.Describe(in_feature_class).shapeFieldName
     spatial_reference = arcpy.SpatialReference('WGS 1984')
@@ -99,3 +120,27 @@ def write_geojson_file(in_feature_class, out_json_file):
     with open(out_json_file, 'wb') as out_json:
         for line in geojson_lines_for_feature_class(in_feature_class):
             out_json.write(line + "\n")
+
+def post_gist(in_feature_class, feature_geojson):
+    filename = os.path.basename(in_feature_class) + ".json"
+    gist_payload = {
+                        'description':
+                            u"Feature Layer {}".format(in_feature_class),
+                        'public': True,
+                        'files': {
+                            filename: { "content": feature_geojson }
+                        }
+                   }
+    req = urllib2.Request("https://api.github.com/gists",
+                          json.dumps(gist_payload),
+                          headers = {'Content-Type': 'application/json',
+                                     'Accept': '*/*',
+                                     'User-Agent': 'gptool/geojson'})
+    reponse = urllib2.urlopen(req)
+    arcpycpy.AddMessage(reponse.read())
+
+def write_geojson_gist(in_feature_class):
+    arcpy.AddMessage("Getting GeoJSON from features")
+    geojson = get_geojson_string(in_feature_class)
+    arcpy.AddMessage("Posting Gist")
+    post_gist(in_feature_class, geojson)
