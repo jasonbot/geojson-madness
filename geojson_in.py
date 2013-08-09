@@ -6,6 +6,7 @@ import urllib2
 import arcpy
 
 def load_geojson_struct(in_json_location):
+    arcpy.AddMessage("Importing JSON file")
     in_handle = None
     if os.path.isfile(in_json_location):
         in_handle = open(in_json_location, 'rb')
@@ -28,6 +29,20 @@ def guess_type(value):
             value = json.dumps(value)
         return (STRING, len(value))
 
+def sane_field_name(field_name, field_index, used_field_names):
+    if not (field_name or '1')[0].isalpha():
+        field_name = "F" + field_name
+        field_name = re.sub("[^a-z0-9]+", "_", field_name, flags=re.I)[:8]
+        if field_name not in used_field_names:
+            return field_name
+        num = 1
+        f_field_name = field_name
+        while f_field_name in used_field_names:
+            fieldstring = str(num)
+            f_field_name = field_name[:-len(fieldstring)] + fieldstring
+            num += 1
+        return f_field_name
+
 def determine_schema(json_struct):
     geometry_type_mapping  = {
         'LineString': "POLYLINE",
@@ -37,10 +52,12 @@ def determine_schema(json_struct):
         'MultiPolygon': "POLYGON"
     }
 
+    arcpy.AddMessage("Determining Schema")
     if not json_struct.get("type", None) == "FeatureCollection":
         raise TypeError("Data is not a Feature Collection")
     geometry_type = None
     fields = {}
+    arcpy.AddMessage("Inspecting records to determine schema")
     for item in json_struct.get("features", []):
         # Ensure geometry type consistency
         geometry = item['geometry']
@@ -57,23 +74,20 @@ def determine_schema(json_struct):
             guessed_type = guess_type(field_value)
             if field_name not in fields or guessed_type > fields[field_name]:
                 fields[field_name] = guessed_type
+    arcpy.AddMessage("Geometry type: {}".format(geometry_type))
+    arcpy.AddMessage("Sanitizing field names")
+    used_field_names = set()
+    field_names = {}
+    for field_index, field_name in enumerate(sorted(fields)):
+        sane_field_name = fix_field_name(field_name, field_index,
+                                         used_field_names)
+        used_field_names.add(sane_field_name)
+        arcpy.AddMessage("Found field {} ({})".format(sane_field_name, field_name))
+        field_names[field_name] = sane_field_name
+
     return {'geometry_type': geometry_type or "POINT",
             'fields': fields,
-            'field_names': {f: None for f in fields}}
-
-def sane_field_name(field_name, field_index, used_field_names):
-    if not (field_name or '1')[0].isalpha():
-        field_name = "F" + field_name
-        field_name = re.sub("[^a-z0-9]+", "_", field_name, flags=re.I)[:8]
-        if field_name not in used_field_names:
-            return field_name
-        num = 1
-        f_field_name = field_name
-        while f_field_name in used_field_names:
-            fieldstring = str(num)
-            f_field_name = field_name[:-len(fieldstring)] + fieldstring
-            num += 1
-        return f_field_name
+            'field_names': field_names}
 
 def field_info(field_tuple):
     dtype, dlength = field_tuple
@@ -87,16 +101,14 @@ def field_info(field_tuple):
         return ("TEXT", dlength)
 
 def create_feature_class(catalog_path, out_schema):
+    arcpy.AddMessage("Creating feature class with schema")
     arcpy.management.CreateFeatureclass(os.path.dirname(catalog_path),
                                         os.path.basename(catalog_path),
                                         out_schema['geometry_type'])
-    used_field_names = set()
-    for field_index, field_name in enumerate(sorted(out_schema['fields'])):
-        sane_field_name = fix_field_name(field_name, field_index,
-                                         used_field_names)
-        used_field_names.add(sane_field_name)
-        out_schema['field_names'][field_name] = sane_field_name
-        field_type, field_length = field_info(out_schema['fields'][field_name])
+    for field_name, field_info_tuple in out_schema['fields'].iteritems():
+        sane_field_name = out_schema['field_names'].get(field_name, field_name)
+        field_type, field_length = field_info(field_info_tuple)
+        arcpy.AddMessage("Creating {} (type {})".format(sane_field_name, field_type))
         arcpy.management.AddField(catalog_path, sane_field_name, field_type,
                                   field_length=field_length,
                                   field_alias=field_name,
@@ -134,12 +146,17 @@ def geojson_to_geometry(geometry_struct):
         raise TypeError("Geometry type {}".format(geometry_struct['type']))
 
 def write_features(out_feature_class, out_schema, json_struct):
+    arcpy.AddMessage("Writing features")
     # Create a list of (sane_field_name, field_name) tuples
     reverse_field_name_mapping = list(sorted((v, k) for
                                       k, v in ['field_names'].iteritems()))
     fields = ["SHAPE@"] + [f[0] for f in reverse_field_name_mapping]
+    record_count = len(json_struct['features'])
+    arcpy.SetProgressor("step", "Writing rows", 0, record_count)
     with arcpy.da.InsertCursor(out_feature_class, fields) as out_cur:
-        for row_struct in json_struct['features']:
+        for row_index, row_struct in enumerate(json_struct['features']):
+            if (row_index % 100 == 1):
+                arcpy.SetProgressorPosition(row_index)
             row_data = row_struct['properties']
             row_list = [row_data.get(k[1], None)
                         for k in reverse_field_name_mapping]

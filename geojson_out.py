@@ -62,6 +62,9 @@ def geojson_lines_for_feature_class(in_feature_class):
                             for field in arcpy.ListFields()
                      }
 
+    record_count = int(arcpy.management.GetCount(in_feature_class)[0])
+    arcpy.SetProgressor("step", "Writing records", 0, record_count)
+
     with arcpy.da.SearchCursor(in_feature_class, ['SHAPE@', '*'],
                                spatial_reference=spatial_reference) as in_cur:
         col_names = [aliased_fields.get(f, f) for f in in_cur.fields[1:]]
@@ -71,6 +74,8 @@ def geojson_lines_for_feature_class(in_feature_class):
         for row_idx, row in enumerate(in_cur):
             if row_idx:
                 yield "    ,"
+            if (row_idx % 100 == 1):
+                arcpy.SetProgressorPosition(row_idx)
             geometry_dict = geometry_to_struct(row[0])
             property_dict = dict(zip(col_names, row[1:]))
             if shape_field in property_dict:
@@ -89,6 +94,8 @@ def get_geojson_string(in_feature_class):
     return "\n".join(geojson_lines_for_feature_class(in_feature_class))
 
 def write_geojson_file(in_feature_class, out_json_file):
+    arcpy.AddMessage("Writing features from {} to {}".format(in_feature_class,
+                                                             out_json_file))
     with open(out_json_file, 'wb') as out_json:
         for line in geojson_lines_for_feature_class(in_feature_class):
             out_json.write(line + "\n")
