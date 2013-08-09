@@ -1,3 +1,4 @@
+import imp
 import os
 
 import arcpy
@@ -43,9 +44,6 @@ class ImportGeoJSON(object):
         pass
 
     def execute(self, parameters, messages):
-        import imp
-        import os
-        
         found_in = imp.find_module('geojson_in', [os.path.dirname(__file__)])
         json_in = imp.load_module('geojson_in', *found_in)
         
@@ -92,9 +90,6 @@ class ExportGeoJSON(object):
         pass
 
     def execute(self, parameters, messages):
-        import imp
-        import os
-        
         found_out = imp.find_module('geojson_out', [os.path.dirname(__file__)])
         json_out = imp.load_module('geojson_out', *found_out)
         
