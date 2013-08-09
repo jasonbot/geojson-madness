@@ -173,3 +173,4 @@ def geojson_to_feature(in_geojson, out_feature_class):
     out_schema = determine_schema(json_struct)
     create_feature_class(out_feature_class, out_schema)
     write_features(out_feature_class, out_schema, json_struct)
+

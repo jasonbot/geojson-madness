@@ -133,14 +133,13 @@ def post_gist(in_feature_class, feature_geojson):
                    }
     req = urllib2.Request("https://api.github.com/gists",
                           json.dumps(gist_payload),
-                          headers = {'Content-Type': 'application/json',
-                                     'Accept': '*/*',
-                                     'User-Agent': 'gptool/geojson'})
+                          headers = {'Content-Type': 'application/json'})
     reponse = urllib2.urlopen(req)
-    arcpycpy.AddMessage(reponse.read())
+    return json.loads(reponse.read())["url"]
 
 def write_geojson_gist(in_feature_class):
     arcpy.AddMessage("Getting GeoJSON from features")
     geojson = get_geojson_string(in_feature_class)
     arcpy.AddMessage("Posting Gist")
-    post_gist(in_feature_class, geojson)
+    return post_gist(in_feature_class, geojson)
+
