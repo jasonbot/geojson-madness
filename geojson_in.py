@@ -1,6 +1,7 @@
 # coding: utf-8
 import json
 import os
+import re
 import urllib2
 
 import arcpy
@@ -29,19 +30,19 @@ def guess_type(value):
             value = json.dumps(value)
         return (STRING, len(value))
 
-def sane_field_name(field_name, field_index, used_field_names):
+def fix_field_name(field_name, field_index, used_field_names):
     if not (field_name or '1')[0].isalpha():
         field_name = "F" + field_name
-        field_name = re.sub("[^a-z0-9]+", "_", field_name, flags=re.I)[:8]
-        if field_name not in used_field_names:
-            return field_name
-        num = 1
-        f_field_name = field_name
-        while f_field_name in used_field_names:
-            fieldstring = str(num)
-            f_field_name = field_name[:-len(fieldstring)] + fieldstring
-            num += 1
-        return f_field_name
+    field_name = re.sub("[^a-z0-9]+", "_", field_name, flags=re.I)[:8]
+    if field_name not in used_field_names:
+        return field_name
+    num = 1
+    f_field_name = field_name
+    while f_field_name in used_field_names:
+        fieldstring = str(num)
+        f_field_name = field_name[:-len(fieldstring)] + fieldstring
+        num += 1
+    return f_field_name
 
 def determine_schema(json_struct):
     geometry_type_mapping  = {
@@ -82,7 +83,8 @@ def determine_schema(json_struct):
         sane_field_name = fix_field_name(field_name, field_index,
                                          used_field_names)
         used_field_names.add(sane_field_name)
-        arcpy.AddMessage("Found field {} ({})".format(sane_field_name, field_name))
+        arcpy.AddMessage("Found field {} ({})".format(sane_field_name,
+                                                      field_name))
         field_names[field_name] = sane_field_name
 
     return {'geometry_type': geometry_type or "POINT",
@@ -101,14 +103,17 @@ def field_info(field_tuple):
         return ("TEXT", dlength)
 
 def create_feature_class(catalog_path, out_schema):
+    spatial_reference = arcpy.SpatialReference('WGS 1984')
     arcpy.AddMessage("Creating feature class with schema")
     arcpy.management.CreateFeatureclass(os.path.dirname(catalog_path),
                                         os.path.basename(catalog_path),
-                                        out_schema['geometry_type'])
+                                        out_schema['geometry_type'],
+                                        spatial_reference=spatial_reference)
     for field_name, field_info_tuple in out_schema['fields'].iteritems():
         sane_field_name = out_schema['field_names'].get(field_name, field_name)
         field_type, field_length = field_info(field_info_tuple)
-        arcpy.AddMessage("Creating {} (type {})".format(sane_field_name, field_type))
+        arcpy.AddMessage("Creating {} (type {})".format(sane_field_name,
+                                                        field_type))
         arcpy.management.AddField(catalog_path, sane_field_name, field_type,
                                   field_length=field_length,
                                   field_alias=field_name,
@@ -132,14 +137,14 @@ def geojson_to_geometry(geometry_struct):
         ]
     elif geometry_struct['type'] == "Polygon":
         return [
-            arcpy.Polygon(arcpy.Array(arcpy.Array([arcpy.Point(*item)
-                                        for item in ring])))
+            arcpy.Polygon(arcpy.Array([arcpy.Point(*item)
+                                         for item in ring]))
             for ring in coordinates
         ]
     elif geometry_struct['type'] == "MultiPolygon":
         return reduce(lambda x,y: x+y, [[
-            arcpy.Polygon(arcpy.Array(arcpy.Array([arcpy.Point(*item)
-                                        for item in ring])))
+            arcpy.Polygon(arcpy.Array([arcpy.Point(*item)
+                                       for item in ring]))
             for ring in polygon
         ] for polygon in coordinates])
     else:
@@ -149,7 +154,7 @@ def write_features(out_feature_class, out_schema, json_struct):
     arcpy.AddMessage("Writing features")
     # Create a list of (sane_field_name, field_name) tuples
     reverse_field_name_mapping = list(sorted((v, k) for
-                                      k, v in ['field_names'].iteritems()))
+                                k, v in out_schema['field_names'].iteritems()))
     fields = ["SHAPE@"] + [f[0] for f in reverse_field_name_mapping]
     record_count = len(json_struct['features'])
     arcpy.SetProgressor("step", "Writing rows", 0, record_count)
