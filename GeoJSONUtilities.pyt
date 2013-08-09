@@ -16,23 +16,21 @@ class ImportGeoJSON(object):
         self.canRunInBackground = False
 
     def getParameterInfo(self):
-        # Input_File
-        param_1 = arcpy.Parameter()
-        param_1.name = u'Input_File'
-        param_1.displayName = u'Input File'
-        param_1.parameterType = 'Required'
-        param_1.direction = 'Input'
-        param_1.datatype = u'DEFile'
+        input_json_param = arcpy.Parameter()
+        input_json_param.name = u'input_json'
+        input_json_param.displayName = u'Input File'
+        input_json_param.parameterType = 'Required'
+        input_json_param.direction = 'Input'
+        input_json_param.datatype = u'DEFile'
 
-        # Output_File
-        param_2 = arcpy.Parameter()
-        param_2.name = u'Output_File'
-        param_2.displayName = u'Output File'
-        param_2.parameterType = 'Required'
-        param_2.direction = 'Output'
-        param_2.datatype = u'DEFeatureClass'
+        output_feature_class_param = arcpy.Parameter()
+        output_feature_class_param.name = u'output_feature_class'
+        output_feature_class_param.displayName = u'Output Feature Class'
+        output_feature_class_param.parameterType = 'Required'
+        output_feature_class_param.direction = 'Output'
+        output_feature_class_param.datatype = u'DEFeatureClass'
 
-        return [param_1, param_2]
+        return [input_json_param, output_feature_class_param]
 
     def isLicensed(self):
         return True
@@ -59,31 +57,28 @@ class ExportGeoJSON(object):
         self.canRunInBackground = False
 
     def getParameterInfo(self):
-        # Input_Feature_Class
-        param_1 = arcpy.Parameter()
-        param_1.name = u'input_fc'
-        param_1.displayName = u'Input Feature Class'
-        param_1.parameterType = 'Required'
-        param_1.direction = 'Input'
-        param_1.datatype = u'GPFeatureLayer'
+        input_feature_class_param = arcpy.Parameter()
+        input_feature_class_param.name = u'input_fc'
+        input_feature_class_param.displayName = u'Input Feature Class'
+        input_feature_class_param.parameterType = 'Required'
+        input_feature_class_param.direction = 'Input'
+        input_feature_class_param.datatype = u'GPFeatureLayer'
 
-        # Output_GeoJSON
-        param_2 = arcpy.Parameter()
-        param_2.name = u'output_json'
-        param_2.displayName = u'Output GeoJSON'
-        param_2.parameterType = 'Required'
-        param_2.direction = 'Output'
-        param_2.datatype = u'DEFile'
+        output_json_param = arcpy.Parameter()
+        output_json_param.name = u'output_json'
+        output_json_param.displayName = u'Output GeoJSON'
+        output_json_param.parameterType = 'Required'
+        output_json_param.direction = 'Output'
+        output_json_param.datatype = u'DEFile'
 
-        # Post_As_Gist
-        param_3 = arcpy.Parameter()
-        param_3.name = u'post_gist'
-        param_3.displayName = u'Post As Gist'
-        param_3.parameterType = 'Optional'
-        param_3.direction = 'Input'
-        param_3.datatype = u'GPBoolean'
+        post_as_gist_param = arcpy.Parameter()
+        post_as_gist_param.name = u'post_as_gist'
+        post_as_gist_param.displayName = u'Post As Gist'
+        post_as_gist_param.parameterType = 'Optional'
+        post_as_gist_param.direction = 'Input'
+        post_as_gist_param.datatype = u'GPBoolean'
 
-        return [param_1, param_2, param_3]
+        return [input_feature_class_param, output_json_param, post_as_gist_param]
 
     def isLicensed(self):
         return True
@@ -115,3 +110,4 @@ class ExportGeoJSON(object):
             json_out.write_geojson_gist(args[0])
         else:
             json_out.write_geojson_file(*(args[:-1]))
+
