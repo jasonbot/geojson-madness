@@ -11,7 +11,7 @@ def part_split_at_nones(part_items):
                 yield current_part
             current_part = []
         else:
-            current_part.append(item.X, item.Y)
+            current_part.append((item.X, item.Y))
     if current_part:
         yield current_part
 
@@ -59,7 +59,7 @@ def geojson_lines_for_feature_class(in_feature_class):
 
     aliased_fields = {
                             field.name: (field.aliasName or field.name)
-                            for field in arcpy.ListFields()
+                            for field in arcpy.ListFields(in_feature_class)
                      }
 
     record_count = int(arcpy.management.GetCount(in_feature_class)[0])
