@@ -136,17 +136,18 @@ def geojson_to_geometry(geometry_struct):
             for linestring in coordinates
         ]
     elif geometry_struct['type'] == "Polygon":
-        return [
-            arcpy.Polygon(arcpy.Array([arcpy.Point(*item)
-                                         for item in ring]))
-            for ring in coordinates
-        ]
+        wkt_string = "POLYGON ({})".format(
+            ", ".join("({})".format(
+                ",".join(" ".join(str(f) for f in pair) for pair in ring))
+            for ring in coordinates))
+        return [arcpy.FromWKT(wkt_string)]
     elif geometry_struct['type'] == "MultiPolygon":
-        return reduce(lambda x,y: x+y, [[
-            arcpy.Polygon(arcpy.Array([arcpy.Point(*item)
-                                       for item in ring]))
-            for ring in polygon
-        ] for polygon in coordinates])
+        wkt_string = "MULTIPOLYGON ({})".format(",".join("({})".format(
+                ", ".join("({})".format(
+                    ",".join(" ".join(str(f) for f in pair) for pair in ring)))
+                for ring in polygon))
+            for polygon in coordinates)
+        return [arcpy.FromWKT(wkt_string)]
     else:
         raise TypeError("Geometry type {}".format(geometry_struct['type']))
 
