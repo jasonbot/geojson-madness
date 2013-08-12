@@ -118,5 +118,5 @@ class ExportGeoJSON(object):
             out_url = json_out.write_geojson_gist(args[0])
             arcpy.SetParameterAsText(3, out_url)
         else:
-            json_out.write_geojson_file(*(args[:-1]))
+            json_out.write_geojson_file(*(args[:-2]))
             arcpy.SetParameterAsText(3, "")
