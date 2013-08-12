@@ -49,6 +49,7 @@ def determine_schema(json_struct):
         'LineString': "POLYLINE",
         'MultiLineString': "POLYLINE",
         'Point': "POINT",
+	'MultiPoint': "MULTIPOINT",
         'Polygon': "POLYGON",
         'MultiPolygon': "POLYGON"
     }
@@ -119,41 +120,43 @@ def create_feature_class(catalog_path, out_schema):
 def geojson_to_geometry(geometry_struct):
     coordinates = geometry_struct['coordinates']
     if geometry_struct['type'] == "Point":
-        return [arcpy.PointGeometry(arcpy.Point(*coordinates))]
+        return "POINT ({})".format(" ".join(str(f) for f in coordinates))
     elif geometry_struct['type'] == "MultiPoint":
-        return [arcpy.PointGeometry(arcpy.Point(*coord))
-                for coord in coordinates]
+        return "MULTIPOINT ({})".format(
+            ", ".join(
+                " ".join(str(f) for f in point))
+            for point in coordinates)
     elif geometry_struct['type'] == "LineString":
-        return [arcpy.Polyline(arcpy.Array([arcpy.Point(*item)
-                                        for item in coordinates]))]
+        return "LINESTRING ({})".format(
+            ", ".join(
+                " ".join(str(f) for f in point))
+            for point in coordinates)
     elif geometry_struct['type'] == "MultiLineString":
-        return [
-            arcpy.Polyline(arcpy.Array([arcpy.Point(*item)
-                                        for item in linestring]))
-            for linestring in coordinates
-        ]
+        return "MULTILINESTRING ({})".format(
+            ", ".join("({})".format(
+                ",".join(" ".join(str(f) for f in pair) for pair in segment))
+            for segment in coordinates))
     elif geometry_struct['type'] == "Polygon":
-        wkt_string = "POLYGON ({})".format(
+        return "POLYGON ({})".format(
             ", ".join("({})".format(
                 ",".join(" ".join(str(f) for f in pair) for pair in ring))
             for ring in coordinates))
-        return [arcpy.FromWKT(wkt_string)]
     elif geometry_struct['type'] == "MultiPolygon":
-        wkt_string = "MULTIPOLYGON ({})".format(",".join("({})".format(
+        return "MULTIPOLYGON ({})".format(",".join("({})".format(
                 ", ".join("({})".format(
                     ",".join(" ".join(str(f) for f in pair) for pair in ring)))
                 for ring in polygon))
             for polygon in coordinates)
-        return [arcpy.FromWKT(wkt_string)]
     else:
         raise TypeError("Geometry type {}".format(geometry_struct['type']))
 
 def write_features(out_feature_class, out_schema, json_struct):
     arcpy.AddMessage("Writing features")
     # Create a list of (sane_field_name, field_name) tuples
-    reverse_field_name_mapping = list(sorted((v, k) for
-                                k, v in out_schema['field_names'].iteritems()))
-    fields = ["SHAPE@"] + [f[0] for f in reverse_field_name_mapping]
+    reverse_field_name_mapping = list(sorted((v, k)
+                                      for k, v
+                                      in out_schema['field_names'].iteritems()))
+    fields = ["SHAPE@WKT"] + [f[0] for f in reverse_field_name_mapping]
     record_count = len(json_struct['features'])
     arcpy.SetProgressor("step", "Writing rows", 0, record_count)
     with arcpy.da.InsertCursor(out_feature_class, fields) as out_cur:
@@ -163,8 +166,8 @@ def write_features(out_feature_class, out_schema, json_struct):
             row_data = row_struct['properties']
             row_list = [row_data.get(k[1], None)
                         for k in reverse_field_name_mapping]
-            for geometry in geojson_to_geometry(row_struct['geometry']):
-                out_cur.insertRow([geometry] + row_list)
+            wkt = geojson_to_geometry(row_struct['geometry'])
+            out_cur.insertRow([wkt] + row_list)
 
 def geojson_to_feature(in_geojson, out_feature_class):
     json_struct = load_geojson_struct(in_geojson)
