@@ -141,5 +141,7 @@ def write_geojson_gist(in_feature_class):
     arcpy.AddMessage("Getting GeoJSON from features")
     geojson = get_geojson_string(in_feature_class)
     arcpy.AddMessage("Posting Gist")
-    return post_gist(in_feature_class, geojson)
+    gist_url = post_gist(in_feature_class, geojson)
+    arcpy.AddMessage("Posted Gist to {}".format(gist_url))
+    return gist_url
 

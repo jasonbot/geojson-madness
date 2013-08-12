@@ -78,7 +78,15 @@ class ExportGeoJSON(object):
         post_as_gist_param.direction = 'Input'
         post_as_gist_param.datatype = u'GPBoolean'
 
-        return [input_feature_class_param, output_json_param, post_as_gist_param]
+        output_url_param = arcpy.Parameter()
+        output_url_param.name = u'output_url'
+        output_url_param.displayName = u'Output URL'
+        output_url_param.parameterType = 'Derived'
+        output_url_param.direction = 'Output'
+        output_url_param.datatype = u'GPString'
+
+        return [input_feature_class_param, output_json_param,
+                post_as_gist_param, output_url_param]
 
     def isLicensed(self):
         return True
@@ -107,7 +115,8 @@ class ExportGeoJSON(object):
         write_gist = args[-1] == "true"
 
         if write_gist:
-            json_out.write_geojson_gist(args[0])
+            out_url = json_out.write_geojson_gist(args[0])
+            arcpy.SetParameterAsText(3, out_url)
         else:
             json_out.write_geojson_file(*(args[:-1]))
-
+            arcpy.SetParameterAsText(3, "")
