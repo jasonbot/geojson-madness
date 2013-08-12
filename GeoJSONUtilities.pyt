@@ -37,11 +37,7 @@ class ImportGeoJSON(object):
         return True
 
     def updateParameters(self, parameters):
-        if parameters[0].value:
-            parsed_url = list(urlparse.urlparse(parmeters[0].valueAsText))
-            if parsed_url[0].lower() not in ('http', 'https'):
-                parsed_url[0] = 'http'
-            parameters[0].valueAsText = urlparse.urlunparse(parsed_url)
+        pass
 
     def updateMessages(self, parameters):
         pass
@@ -57,8 +53,9 @@ class ImportGeoJSON(object):
 
 class ImportGeoJSONFromURL(ImportGeoJSON):
     def __init__(self):
-        self.label = u'Import GeoJSON from URL'
         super(ImportGeoJSONFromURL, self).__init__()
+        self.label = u'Import GeoJSON from URL'
+
     def getParameterInfo(self):
         input_json_param = arcpy.Parameter()
         input_json_param.name = u'input_json'
@@ -71,6 +68,14 @@ class ImportGeoJSONFromURL(ImportGeoJSON):
         parameters[0] = input_json_param
 
         return parameters
+
+    def updateParameters(self, parameters):
+        if parameters[0].value:
+            parsed_url = list(urlparse.urlparse(parmeters[0].valueAsText))
+            if parsed_url[0].lower() not in ('http', 'https'):
+                parsed_url[0] = 'http'
+            parameters[0].valueAsText = urlparse.urlunparse(parsed_url)
+        return super(ImportGeoJSONFromURL, self).updateParameters()
 
 class ExportGeoJSON(object):
     def __init__(self):
