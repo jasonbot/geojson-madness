@@ -1,5 +1,6 @@
 import imp
 import os
+import urlparse
 
 import arcpy
 
@@ -7,7 +8,7 @@ class Toolbox(object):
     def __init__(self):
         self.label = u'GeoJSON Utilities'
         self.alias = 'geojsonconversion'
-        self.tools = [ImportGeoJSON, ExportGeoJSON]
+        self.tools = [ImportGeoJSON, ImportGeoJSONFromURL, ExportGeoJSON]
 
 class ImportGeoJSON(object):
     def __init__(self):
@@ -36,7 +37,11 @@ class ImportGeoJSON(object):
         return True
 
     def updateParameters(self, parameters):
-        pass
+        if parameters[0].value:
+            parsed_url = list(urlparse.urlparse(parmeters[0].valueAsText))
+            if parsed_url[0].lower() not in ('http', 'https'):
+                parsed_url[0] = 'http'
+            parameters[0].valueAsText = urlparse.urlunparse(parsed_url)
 
     def updateMessages(self, parameters):
         pass
@@ -49,6 +54,23 @@ class ImportGeoJSON(object):
                 for idx in xrange(len(parameters))]
 
         json_in.geojson_to_feature(*args)
+
+class ImportGeoJSONFromURL(ImportGeoJSON):
+    def __init__(self):
+        self.label = u'Import GeoJSON from URL'
+        super(ImportGeoJSONFromURL, self).__init__()
+    def getParameterInfo(self):
+        input_json_param = arcpy.Parameter()
+        input_json_param.name = u'input_json'
+        input_json_param.displayName = u'Input URL'
+        input_json_param.parameterType = 'Required'
+        input_json_param.direction = 'Input'
+        input_json_param.datatype = u'GPString'
+
+        parameters = super(ImportGeoJSONFromURL, self).getParameterInfo()
+        parameters[0] = input_json_param
+
+        return parameters
 
 class ExportGeoJSON(object):
     def __init__(self):
