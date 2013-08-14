@@ -1,18 +1,1 @@
-GeoJSON Geoprocessing Tool
-==========================
-
-GeoJSON is some new upstart format that's come around in the past few weeks. Here's a set of tools to get GeoJSON in/out of ArcGIS.
-
-Usage should be self-explanatory: open up the toolbox in Arc{Catalog,Map,Scene}, select your features to export or import, and blam.
-
-This tool _always_ exports to WGS 1984, because most people on the internet shuffling GeoJSON around are barbarians who don't know the first thing about spatial reference systems. The same applies for import, right now it assumes coordinates are all in WGS 1984.
-
-License
--------
-
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
-
+GeoJSON Geoprocessing Tool==========================GeoJSON is some new upstart format that's come around in the past few weeks. Here's a set of tools to get GeoJSON in/out of ArcGIS.Usage should be self-explanatory: open up the toolbox in Arc{Catalog,Map,Scene}, select your features to export or import, and blam.This tool _always_ exports to WGS 1984, because most people on the internet shuffling GeoJSON around are barbarians who don't know the first thing about spatial reference systems. The same applies for import, right now it assumes coordinates are all in WGS 1984.Theoretically Asked Questions (TAQ)---------------------------------------1. **Why GeoJSON?**    GeoJSON is a format that is obviously missing from the stack. I wanted to provide a stupidly easy way of getting this format in and out so we could all go back and live our lives.2. **Why not other formats like WKT or WKB?**    As of 10.1 SP1, `arcpy.da` cursors have `SHAPE@WKT`/`SHAPE@WKB` tokens, and `arcpy` geometry has `.WKT`/`.WKT` attributes, and the `arcpy.FromWKT` and `arcpy.FromWKB` functions, and as of 10.2 you can make SpatialLite databases and they even sow up in the catalog window. So there's enough other open formats already there and ready to go.License-------Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at   http://www.apache.org/licenses/LICENSE-2.0Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
