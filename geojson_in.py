@@ -59,6 +59,7 @@ def determine_schema(json_struct):
         raise TypeError("Data is not a Feature Collection")
     geometry_type = None
     fields = {}
+
     arcpy.AddMessage("Inspecting records to determine schema")
     for item in json_struct.get("features", []):
         # Ensure geometry type consistency
@@ -101,12 +102,13 @@ def field_info(field_tuple):
         return ("TEXT", dlength)
 
 def create_feature_class(catalog_path, out_schema):
+    arcpy.AddMessage("Creating feature class")
     spatial_reference = arcpy.SpatialReference('WGS 1984')
-    arcpy.AddMessage("Creating feature class with schema")
     arcpy.management.CreateFeatureclass(os.path.dirname(catalog_path),
                                         os.path.basename(catalog_path),
                                         out_schema['geometry_type'],
                                         spatial_reference=spatial_reference)
+    arcpy.AddMessage("Adding fields to feature class")
     for field_name, field_info_tuple in out_schema['fields'].iteritems():
         sane_field_name = out_schema['field_names'].get(field_name, field_name)
         field_type, field_length = field_info(field_info_tuple)
