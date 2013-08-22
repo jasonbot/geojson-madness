@@ -3,7 +3,7 @@ GeoJSON Geoprocessing Tool
 
 GeoJSON is some new upstart format that's come around in the past few weeks. Here's a set of tools to get GeoJSON in/out of ArcGIS.
 
-Usage should be self-explanatory: open up the toolbox in Arc{Catalog,Map,Scene}, select your features to export or import, and blam.
+Usage should be self-explanatory: open up the toolbox in Arc{Catalog,Map,Scene}, select your features to export or import, and there you go. Easy in/out of most GeoJSON you'll find out there.
 
 This tool _always_ exports to WGS 1984, because most people on the internet shuffling GeoJSON around are barbarians who don't know the first thing about spatial reference systems. The same applies for import, right now it assumes coordinates are all in WGS 1984.
 
