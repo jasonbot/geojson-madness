@@ -6,6 +6,8 @@ import urllib2
 
 import arcpy
 
+__all__ = ['geojson_to_feature']
+
 def load_geojson_struct(in_json_location):
     arcpy.AddMessage("Importing JSON file")
     in_handle = None
