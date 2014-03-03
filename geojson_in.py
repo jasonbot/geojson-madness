@@ -51,7 +51,7 @@ def determine_schema(json_struct):
         'LineString': "POLYLINE",
         'MultiLineString': "POLYLINE",
         'Point': "POINT",
-	'MultiPoint': "MULTIPOINT",
+        'MultiPoint': "MULTIPOINT",
         'Polygon': "POLYGON",
         'MultiPolygon': "POLYGON"
     }
@@ -146,13 +146,16 @@ def geojson_to_geometry(geometry_struct):
                 ",".join(" ".join(str(f) for f in pair) for pair in ring))
             for ring in coordinates))
     elif geometry_struct['type'] == "MultiPolygon":
-        return "MULTIPOLYGON ({})".format(",".join("({})".format(
-                ", ".join("({})".format(
-                    ",".join(" ".join(str(f) for f in pair) for pair in ring)))
-                for ring in polygon))
-            for polygon in coordinates)
+        return "MULTIPOLYGON({})".format(",".join("({})".format(
+                                            "({})".format(",".join(
+                                                ",".join(
+                                                    " ".join(str(f)
+                                                             for f in pair)
+                                                for pair in ring)
+                                            for ring in polygon)))
+                                         for polygon in coordinates))
     else:
-        raise TypeError("Geometry type {}".format(geometry_struct['type']))
+        raise TypeError("Cannot handle geometry type {}".format(geometry_struct['type']))
 
 def write_features(out_feature_class, out_schema, json_struct):
     arcpy.AddMessage("Writing features")
