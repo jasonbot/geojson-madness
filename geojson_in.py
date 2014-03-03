@@ -111,7 +111,7 @@ def create_feature_class(catalog_path, out_schema):
                                         out_schema['geometry_type'],
                                         spatial_reference=spatial_reference)
     arcpy.AddMessage("Adding fields to feature class")
-    for field_name, field_info_tuple in out_schema['fields'].iteritems():
+    for field_name, field_info_tuple in sorted(out_schema['fields'].items()):
         sane_field_name = out_schema['field_names'].get(field_name, field_name)
         field_type, field_length = field_info(field_info_tuple)
         arcpy.AddMessage("Field {} (type {})".format(sane_field_name,
