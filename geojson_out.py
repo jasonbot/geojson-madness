@@ -23,7 +23,7 @@ def geometry_to_struct(in_geometry):
     if in_geometry is None:
         return None
     elif isinstance(in_geometry, arcpy.PointGeometry):
-        pt = in_geometryeometry.getPart(0)
+        pt = in_geometry.getPart(0)
         return {
                     'type': "Point",
                     'coordinates': (pt.X, pt.Y)
